@@ -1,93 +1,74 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   get_next_line.c                                    :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: mbucci <marvin@42.fr>                      +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/09/20 19:38:53 by mbucci            #+#    #+#             */
-/*   Updated: 2021/09/22 01:14:32 by mbucci           ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "get_next_line.h"
+#include <fcntl.h>
+#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-int	ft_strlen(const char *s)
+void	ft_strcpy(char *dst, char *src)
 {
-	int	i;
-
-	i = 0;
-	while (*s)
-		i++;
-	return (i);
-}
-
-int	check_line(char *line)
-{
-	while (*line)
-	{
-		if (*line == '\n')
-			return (1);
-		line++;
-	}
-	return (0);
-}
-
-char	*ft_strcpy(char *dst, char *src)
-{
-	if (!dst || !src)
-		return (NULL);
 	while (*src)
 		*dst++ = *src++;
-	return (dst);
 }
 
-char	*update_line(char *line, char c)
+char	*update_line(char *line, char c, int len)
 {
-	char	*n_line;
+	char	*new;
 
-	n_line = (char *)malloc(ft_strlen(line) + 1);
-	if (!n_line)
+	new = (char *)malloc(len + 1);
+	if (!new)
 		return (NULL);
-	ft_strcpy(n_line, line);
-	n_line[ft_strlen(line) + 1] = c;
+	ft_strcpy(new, line);
 	free(line);
-	return (n_line);
+	new[len] = c;
+	new[len + 1] = '\0';
+	//printf("%s\n", new);
+	return (new);
 }
 
 char	*get_next_line(int fd)
 {
 	int		i;
-	char	buff;
+	int		j;
+	int		status;
 	char	*line;
+	char	 buff;
 
-	line = (char *)malloc(BUFF_SIZE + 1);
-	while (check_line(line) == 0)
+	if (fd == -1)
+		return (NULL);
+	line = (char *)malloc(1);
+	if (!line)
+		return (NULL);
+	status = 1;
+	j = 0;
+	while (status)
 	{
 		i = -1;
-		printf("%d\n", i);
-		while (++i < BUFF_SIZE)
+		while (++i < BUFFER_SIZE && status)
 		{
-			read(fd, &buff, BUFF_SIZE);
-			line = update_line(line, buff);
-			if (!line)
-				return (NULL);
+			status = read(fd, &buff, 1);
+			//printf("%d --> %d\n", i + j, status);
+			if (status == 0)
+				break;
+			line = update_line(line, buff, i + j);
+			//printf("%d --> %c\n" ,i + j, buff);
+			if (buff == '\n')
+				return (line);
 		}
-		if (i < BUFF_SIZE)
-			return (line);
+		j += i;
 	}
+	if (*line == '\0')
+		return (NULL);
 	return (line);
 }
 
-#include <fcntl.h>
-
-int	main(void)
+/*int	main(void)
 {
-	int fd = open("file", O_RDONLY);
+	int fd = open("file",  O_RDONLY);
 	char *str = get_next_line(fd);
-	printf("%s.\n", str);
+	printf("%s", str);
+	free(str);
+	//str = get_next_line(fd);
+	//printf("%s", str);
 	//free(str);
 	close(fd);
 	return (0);
-}
+}*/
